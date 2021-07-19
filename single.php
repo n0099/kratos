@@ -1,9 +1,9 @@
 <?php
 /**
  * 文章内容
- * @author Seaton Jiang <seaton@vtrois.com>
+ * @author Seaton Jiang <seatonjiang@vtrois.com>
  * @license MIT License
- * @version 2021.05.22
+ * @version 2021.07.01
  */
 
 get_header();
@@ -55,7 +55,7 @@ $select_col = $col_array[kratos_option('g_article_widgets', 'two_side')];
                             <?php if (current_user_can('edit_posts')){ echo '<span>'; edit_post_link(__('编辑文章', 'kratos')); echo '</span>'; }; ?>
                             </div>
                         </div>
-                        <div class="content">
+                        <div class="content" id="lightgallery">
                             <?php
                             if(kratos_option('s_singletop',false)){
                                 if(kratos_option('s_singletop_links')){
@@ -146,7 +146,7 @@ $select_col = $col_array[kratos_option('g_article_widgets', 'two_side')];
             </div>
             <?php if (kratos_option('g_article_widgets', 'two_side') == 'two_side'){ ?>
             <div class="col-lg-4 sidebar sticky-sidebar d-none d-lg-block">
-                <?php dynamic_sidebar('sidebar_tool'); if (kratos_option('g_post_toc', true)) echo article_toc(); ?>
+                <?php dynamic_sidebar('single_sidebar'); ?>
             </div>
             <?php } ?>
         </div>

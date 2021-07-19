@@ -1,17 +1,33 @@
 <?php
 /**
  * 侧栏小工具
- * @author Seaton Jiang <seaton@vtrois.com>
+ * @author Seaton Jiang <seatonjiang@vtrois.com>
  * @license MIT License
- * @version 2021.05.20
+ * @version 2021.06.26
  */
 
 // 添加小工具
 function widgets_init()
 {
     register_sidebar(array(
-        'name' => __('侧边栏工具', 'kratos'),
-        'id' => 'sidebar_tool',
+        'name' => __('主页侧边栏', 'kratos'),
+        'id' => 'home_sidebar',
+        'before_widget' => '<div class="widget %2$s">',
+        'after_widget' => '</div>',
+        'before_title' => '<div class="title">',
+        'after_title' => '</div>',
+    ));
+    register_sidebar(array(
+        'name' => __('文章侧边栏', 'kratos'),
+        'id' => 'single_sidebar',
+        'before_widget' => '<div class="widget %2$s">',
+        'after_widget' => '</div>',
+        'before_title' => '<div class="title">',
+        'after_title' => '</div>',
+    ));
+    register_sidebar(array(
+        'name' => __('页面侧边栏', 'kratos'),
+        'id' => 'page_sidebar',
         'before_widget' => '<div class="widget %2$s">',
         'after_widget' => '</div>',
         'before_title' => '<div class="title">',
@@ -19,6 +35,7 @@ function widgets_init()
     ));
     // 去掉默认小工具
     $wp_widget = array(
+        'WP_Widget_Block',
         'WP_Widget_Pages',
         'WP_Widget_Meta',
         'WP_Widget_Media_Image',
@@ -77,26 +94,22 @@ function most_comm_posts($days = 30, $nums = 6)
     echo $output;
 }
 
-function timeago($ptime){
-    $ptime = strtotime($ptime);
-    $etime = time() - $ptime;
-    if($etime < 1)
-        return '刚刚';
-    $interval = array(
-        12*30*24*60*60 => __(' 年前','kratos').'（'.date(__('m月d日','kratos'),$ptime).'）',
-        30*24*60*60 => __(' 个月前','kratos').'（'.date(__('m月d日','kratos'),$ptime).'）',
-        7*24*60*60 => __(' 周前','kratos').'（'.date(__('m月d日','kratos'),$ptime).'）',
-        24*60*60 => __(' 天前','kratos').'（'.date(__('m月d日','kratos'),$ptime).'）',
-        60*60 => __(' 小时前','kratos').'（'.date(__('m月d日','kratos'),$ptime).'）',
-        60 => __(' 分钟前','kratos').'（'.date(__('m月d日','kratos'),$ptime).'）',
-        1 => __(' 秒前','kratos').'（'.date(__('m月d日','kratos'),$ptime).'）',
-    );
-    foreach($interval as$secs=>$str){
-        $d=$etime/$secs;
-        if($d>=1){
-            $r=round($d);
-            return$r.$str;
-        }
+function timeago($time) {
+    $time = strtotime($time);
+    $dtime = time() - $time;
+    if ($dtime < 1) return __('刚刚', 'kratos');
+    $intervals = [
+        12 * 30 * 24 * 60 * 60 => __(' 年前', 'kratos'),
+        30 * 24 * 60 * 60 => __(' 个月前', 'kratos'),
+        7  * 24 * 60 * 60 => __(' 周前', 'kratos'),
+        24 * 60 * 60 => __(' 天前', 'kratos'),
+        60 * 60 => __(' 小时前', 'kratos'),
+        60 => __(' 分钟前', 'kratos'),
+        1 => __(' 秒前', 'kratos')
+    ];
+    foreach ($intervals as $sec => $str) {
+        $v = $dtime / $sec;
+        if ($v >= 1) return round($v) . $str;
     }
 }
 
@@ -128,7 +141,15 @@ function latest_comments($list_number=5, $cut_length=50)
     $comments = $wpdb->get_results($wpdb->prepare("SELECT comment_ID, comment_post_ID, comment_author, comment_author_email, comment_date_gmt, comment_content FROM {$wpdb->comments} LEFT OUTER JOIN {$wpdb->posts} ON {$wpdb->comments}.comment_post_ID = {$wpdb->posts}.ID WHERE comment_approved = '1' AND (comment_type = '' OR comment_type = 'comment') AND user_id != '1' AND post_password = '' ORDER BY comment_date_gmt DESC LIMIT %d", $list_number));
     foreach ($comments as $comment) {
         $nickname = esc_attr($comment->comment_author) ?: __('匿名', 'kratos');
-        $output .= '<a href="' . get_the_permalink($comment->comment_post_ID) . '#commentform"> <div class="meta clearfix"> <div class="avatar float-left">' . get_avatar($comment, 60) . '</div> <div class="profile d-block"> <span class="date">' . $nickname . ' ' . __('发布于 ', 'kratos') . timeago($comment->comment_date_gmt) . '</span> <span class="message d-block">' . convert_smilies(esc_attr(string_cut(strip_tags($comment->comment_content), $cut_length))) . '</span> </div> </div> </a>';
+        $output .= '<a href="' . get_the_permalink($comment->comment_post_ID) . '#commentform">
+            <div class="meta clearfix">
+                <div class="avatar float-left">' . get_avatar($comment, 60) . '</div>
+                <div class="profile d-block">
+                    <span class="date">' . $nickname . ' ' . __('发布于 ', 'kratos') . timeago($comment->comment_date) . '（' . date(__('m月d日', 'kratos'), strtotime($comment->comment_date)) . '）</span>
+                    <span class="message d-block">' . convert_smilies(esc_attr(string_cut(strip_tags($comment->comment_content), $cut_length))) . '</span>
+                </div>
+            </div>
+        </a>';
     }
     return $output;
 }
@@ -518,6 +539,71 @@ class widget_comments extends WP_Widget
     }
 }
 
+class widget_toc extends WP_Widget
+{
+    public function __construct()
+    {
+        add_action('admin_enqueue_scripts', array($this, 'scripts'));
+
+        $widget_ops = array(
+            'name' => __('文章目录', 'kratos'),
+            'description' => __('仅在有目录规则的文章中显示目录的工具', 'kratos'),
+        );
+
+        parent::__construct(false, false, $widget_ops);
+    }
+
+    public function scripts()
+    {
+        wp_enqueue_script('media-upload');
+        wp_enqueue_media();
+        wp_enqueue_script('widget_scripts', ASSET_PATH . '/assets/js/widget.min.js', array('jquery'));
+        wp_enqueue_style('widget_css', ASSET_PATH . '/assets/css/widget.min.css', array());
+    }
+
+    public function widget($args, $instance)
+    {
+        global $toc;
+
+        $index = wp_cache_get(get_the_ID(), 'toc');
+    
+        if ($index === false && $toc) {
+            $index = '<ul class="ul-toc">' . "\n";
+            $prev_depth = '';
+            $to_depth = 0;
+            foreach ($toc as $toc_item) {
+                $toc_depth = $toc_item['depth'];
+                if ($prev_depth) {
+                    if ($toc_depth == $prev_depth) {
+                        $index .= '</li>' . "\n";
+                    } elseif ($toc_depth > $prev_depth) {
+                        $to_depth++;
+                        $index .= '<ul class="ul-'.$toc_depth.'">' . "\n";
+                    } else {
+                        $to_depth2 = $to_depth > $prev_depth - $toc_depth ? $prev_depth - $toc_depth : $to_depth;
+                        if ($to_depth2) {
+                            for ($i = 0; $i < $to_depth2; $i++) {
+                                $index .= '</li>' . "\n" . '</ul>' . "\n";
+                                $to_depth--;
+                            }
+                        }
+                        $index .= '</li>';
+                    }
+                }
+                $index .= '<li class="li-'.$toc_depth.'"><a href="#toc-' . $toc_item['count'] . '">' . str_replace(array('[h2title]', '[/h2title]'),array('', ''),$toc_item['text']) . '</a>';
+                $prev_depth = $toc_item['depth'];
+            }
+            for ($i = 0; $i <= $to_depth; $i++) {
+                $index .= '</li>' . "\n" . '</ul>' . "\n";
+            }
+            wp_cache_set(get_the_ID(), $index, 'toc', 360000);
+            $index = '<div class="widget w-toc">' . "\n" . '<div class="title">文章目录</div>' . "\n" . '<div class="item">' . $index . '</div>' . "\n" . '</div>';
+        }
+    
+        echo $index;
+    }
+}
+
 function register_widgets()
 {
     register_widget('widget_ad');
@@ -526,5 +612,6 @@ function register_widgets()
     register_widget('widget_search');
     register_widget('widget_posts');
     register_widget('widget_comments');
+    register_widget('widget_toc');
 }
 add_action('widgets_init', 'register_widgets');

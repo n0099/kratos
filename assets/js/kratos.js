@@ -1,11 +1,11 @@
 /*!
  * Kratos
- * Seaton Jiang <seaton@vtrois.com>
+ * Seaton Jiang <seatonjiang@vtrois.com>
  */
 (function () {
   "use strict";
 
-  var KRATOS_VERSION = "3.3.2";
+  var KRATOS_VERSION = "3.3.4";
 
   var navbarConfig = function () {
     $("#navbutton").on("click", function () {
@@ -168,18 +168,18 @@
     });
   };
 
-  var siderbarConfig = function () {
-    $(".sticky-sidebar").theiaStickySidebar({
-      additionalMarginTop: 25,
-    });
-  };
-
   var consoleConfig = function () {
     console.log(
       "\n Kratos v" +
         KRATOS_VERSION +
         "\n\n https://github.com/vtrois/kratos \n\n"
     );
+  };
+
+  var lightGalleryConfig = function () {
+    lightGallery(document.getElementById("lightgallery"), {
+      selector: "a",
+    });
   };
 
   $(function () {
@@ -193,9 +193,7 @@
     postlikeConfig();
     donateConfig();
     consoleConfig();
-    if (kratos.sticky) {
-      siderbarConfig();
-    }
+    lightGalleryConfig();
   });
 })();
 

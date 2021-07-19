@@ -1,9 +1,9 @@
 <?php
 /**
  * 文章相关函数
- * @author Seaton Jiang <seaton@vtrois.com>
+ * @author Seaton Jiang <seatonjiang@vtrois.com>
  * @license MIT License
- * @version 2021.05.24
+ * @version 2021.07.01
  */
 
 // 文章链接添加 target 和 rel
@@ -104,6 +104,11 @@ add_theme_support("post-thumbnails");
 // 生成适合特色图的比例图片
 add_image_size( 'kratos-thumbnail', 512, 288, true );
 
+// 强制图片链接到媒体文件
+add_action('after_setup_theme', 'default_attachment_display_settings');
+function default_attachment_display_settings() {
+	update_option('image_default_link_type', 'file');
+}
 // 文章特色图片
 function post_thumbnail()
 {
@@ -368,6 +373,8 @@ function get_wpsmiliestrans()
 if (!kratos_option('g_gutenberg',false)) {
     // 禁用 Gutenberg 编辑器
     add_filter('use_block_editor_for_post', '__return_false');
+    add_filter('gutenberg_use_widgets_block_editor', '__return_false');
+    add_filter('use_widgets_block_editor', '__return_false');
     remove_action('wp_enqueue_scripts', 'wp_common_block_scripts_and_styles');
 
     // 删除前端的block library的css资源，
@@ -551,46 +558,4 @@ function toc_replace_heading($content)
     $toc[] = array('text' => trim(strip_tags($content[3])), 'depth' => $content[1], 'count' => $toc_count);
 
     return "<h{$content[1]} {$content[2]}><a name=\"toc-{$toc_count}\"></a>{$content[3]}</h{$content[1]}>";
-}
-
-function article_toc()
-{
-    global $toc;
-
-    $index = wp_cache_get(get_the_ID(), 'toc');
-
-    if ($index === false && $toc) {
-        $index = '<ul class="ul-toc">' . "\n";
-        $prev_depth = '';
-        $to_depth = 0;
-        foreach ($toc as $toc_item) {
-            $toc_depth = $toc_item['depth'];
-            if ($prev_depth) {
-                if ($toc_depth == $prev_depth) {
-                    $index .= '</li>' . "\n";
-                } elseif ($toc_depth > $prev_depth) {
-                    $to_depth++;
-                    $index .= '<ul class="ul-'.$toc_depth.'">' . "\n";
-                } else {
-                    $to_depth2 = $to_depth > $prev_depth - $toc_depth ? $prev_depth - $toc_depth : $to_depth;
-                    if ($to_depth2) {
-                        for ($i = 0; $i < $to_depth2; $i++) {
-                            $index .= '</li>' . "\n" . '</ul>' . "\n";
-                            $to_depth--;
-                        }
-                    }
-                    $index .= '</li>';
-                }
-            }
-            $index .= '<li class="li-'.$toc_depth.'"><a href="#toc-' . $toc_item['count'] . '">' . str_replace(array('[h2title]', '[/h2title]'),array('', ''),$toc_item['text']) . '</a>';
-            $prev_depth = $toc_item['depth'];
-        }
-        for ($i = 0; $i <= $to_depth; $i++) {
-            $index .= '</li>' . "\n" . '</ul>' . "\n";
-        }
-        wp_cache_set(get_the_ID(), $index, 'toc', 360000);
-        $index = '<div class="widget w-toc">' . "\n" . '<div class="title">文章目录</div>' . "\n" . '<div class="item">' . $index . '</div>' . "\n" . '</div>';
-    }
-
-    return $index;
 }

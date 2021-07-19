@@ -1,12 +1,12 @@
 <?php
 /**
  * 模板函数
- * @author Seaton Jiang <seaton@vtrois.com>
+ * @author Seaton Jiang <seatonjiang@vtrois.com>
  * @license MIT License
- * @version 2020.06.05
+ * @version 2021.06.25
  */
 
-define('THEME_VERSION', wp_get_theme()->get('Version'));
+define('THEME_VERSION', '3.3.4');
 
 // 主题配置
 require get_template_directory() . '/inc/options-framework/autoload.php';
@@ -40,6 +40,3 @@ require get_template_directory() . '/inc/theme-volcengine.php';
 
 // SMTP 配置
 require get_template_directory() . '/inc/theme-smtp.php';
-
-// 自定义函数
-require get_template_directory() . '/custom/custom.php';
